@@ -1,0 +1,527 @@
+/*
+Asma Awad — CISC 3665 Assignment 1
+(Please click once inside the game screen when the sketch opens up in order to be able to hit 's' to start!)
+
+Types of Fun 
+1) Challenge 
+			The game permits the user a challenge mainly in the color changing aspect. In order to gain points, the player must
+			change the color of the cursor in correspondence with the color of the circle the player is aiming to click. Because 
+			the curve impacts/randomizes the colors of each circle every time it hits the edge of the game screen, the player is faced 
+			with the challenge of making sure to change the color of the cursor whilst assuring a color change isn't about to happen
+			so as to avoid losing points. A couple of the times I played, the second before I clicked on a colored circle, it would change,
+			making me lose points, which made me more aware of the curve the next few times. I also made it so that the curve's speed
+			moving across the screen increases as the player gets rid of circles, therefore making the color changes occur more
+			frequently as the player gets closer to winning.
+			There also comes the physical challenge of being able to maneuver your fingers to different keys quickly enough.
+			All in all, in addition to trying to eliminate all the circles within a 30 second time frame, I think the game 
+			presents the player with some level of challenge through these factors altogether. 
+2) Sensation
+			I think part of the fun in this game comes from the challenge of matching the color of the cursor to the circle being clicked. 
+			I don't think it would be as fun/appealing without the visual aspect that comes with the different colors and manipulating 
+			your cursor to match those colors as you click on them. To me, there's something about matching the colors of the cursor
+			and the circle before you click on the circle as opposed to trying to just click on a bunch of circles that adds to the 
+			fun of the game.
+
+Lab 2 Components
+
+1.2 - hitting 'a' while on the start screen causes the program to call the avgColor function, which computes the average 
+			color of the cursor image and sets the background of the start screen to that color. Hitting 'a' again allows the player to toggle
+			between a white and average color background. 
+1.3 - during the game, the player must change the color of the cursor image, essentially tinting the image either red, green, 
+			blue or yellow. 
+
+2.2 - the curve that moves around the screen is connected by two points that are randomly spawned each time the game is played  
+2.3 - clicking the points that connect the spline curve changes their colors as they're clicked. Hitting the space bar alternates
+			between a black curve on a white background and a white curve on a black background 
+2.4 - the curve alternates between being a spline curve and bezier curve as the space bar is hit as well 
+*/
+
+var player; 
+var enemies = []; 
+var cursor; 
+var score = 0;
+var colorChange = false; 
+var bgColor = 255; 
+var cursorSmall; 
+var numEnemies = 8; 
+var timerValue = 30;
+var gameScreen = 0; 
+var avg = false; 
+var img2; 
+var circleClr1Change = false, circleClr2Change = false; 
+
+//curve variables 
+var x1, y1; 
+var x2, y2; 
+var dir = 1; 
+var hit = false; 
+var curveClr = 0; 
+var screenChange = false; 
+var curveSpeed = 1; 
+
+function preload() {
+	cursor = loadImage("cursor2.png"); 
+	cursorSmall = loadImage("cursorSmall.jpg"); 
+}
+
+function setup() {
+	createCanvas(500, 500);
+	frameRate(30); 
+	noCursor();
+	player = new Player(width/2, height - 20, cursor.width/25, cursor.height/25);
+	for (let i = 0; i < numEnemies; i++) {
+		let val = int(random(0, 5)); 
+		enemies[i] = new Enemy(random(30 + (i*20), width - 30), random(45 + (i*10), height - 30), 20, 20, val);
+	}
+	
+	//curve
+	x1 = int(random(10, width/2));
+	y1 = int(random(55, height/2));
+	x2 = int(random(x1 + 10, width - x1)); 
+	y2 = int(random(y1 + 10, height - y1));
+		
+	textSize(30); 
+	textFont('Georgia'); 
+}
+
+function draw() {
+	if (gameScreen === 0) {
+		startScreen(); 
+	}
+	
+	if (gameScreen === 1) {
+		playScreen(); 
+	}
+	
+	if (gameScreen === 2) {
+		gameOver(); 
+	}
+	if (gameScreen === 3) {
+		youWin(); 
+	}
+}
+
+function gameOver() {
+	background(100); 
+	textSize(30); 
+	text("Better luck next time!", 100, 250);  
+}
+
+function youWin() {
+	background(100); 
+	textAlign(CENTER); 
+	text("You win!", 250, 250);  
+	if (score >= 50) {
+		if (score === 80) {
+			textSize(30);
+			text("A perfect score too!", 250, 290);
+		}
+		else {
+			textSize(30);
+			text("Try again to get a higher score!", 250, 290); 
+		}
+	}
+}
+
+function startScreen() {
+	switch (avg) {
+		case true:  
+			background(img2); 
+			break; 
+		case false: 
+			background(255);
+			break; 
+	}
+	stroke(255, 0, 0); 
+	line(10, 140, 490, 140);
+	stroke(0, 0, 255); 
+	line(10, 120, 490, 120); 
+	stroke(0, 255, 0); 
+	line(10, 390, 490, 390);
+	stroke(255, 255, 0); 
+	line(10, 410, 490, 410); 
+	
+	noStroke(); 
+	textAlign(CENTER); 
+	textSize(30); 
+	fill(0); 
+	text("Color Chase", 250, 180);
+	textSize(15); 
+	fill(0); 
+	text("Here's the deal:", 250, 210); 
+	text("Try to get rid of all the circles by clicking on them before time runs out.", 250, 230); 
+	text("There's a catch, though: you must only click on the circles ", 250, 250);
+	text("corresponding to your cursor color— otherwise you lose points.", 250, 270); 
+	text("You must get a score of at least 50 to win.", 250, 290);
+	text("The curve changes the color of all the circles, so keep an eye out.", 250, 310); 
+	text("Use the keys 'r', 'g', 'b', 'y', and 'o' to turn red, green, blue, ", 250, 330); 
+	text("yellow, and back to white respectively.", 250, 350); 
+	text("Hit 's' to start!", 250, 370); 
+}
+
+function playScreen() {
+		textSize(30); 
+		textAlign(LEFT); 
+		background(bgColor); 
+		fill(100); 
+		rect(0, 0, width, 45); 
+		fill(255); 
+		text("score: " + score, 10, 30);
+	
+		displayCurve();
+		moveCurve();
+	
+		for (let j = 0; j < enemies.length; j++) {
+			if (enemies[j].alive === true) {
+				enemies[j].display(); 
+				enemies[j].move(); 
+			}
+		}
+		
+		fill(255); 
+		if (timerValue >= 10) {
+    	text("0:" + timerValue, width - 70, 30);
+  	}
+  	if (timerValue < 10) {
+    	text('0:0' + timerValue, width - 70, 30);
+  	}
+  	if (timerValue == 0 && numEnemies != 0) {
+			gameScreen = 2; 
+  	}
+		if (timerValue === 0 && score >= 50) {
+			gameScreen = 3; 
+  	}
+
+		collisionCheck(); 	
+		player.display();
+}
+
+function mouseClicked() {
+	if (gameScreen === 1) {
+		for (let i = 0; i < enemies.length; i++) {
+		enemies[i].clicked();
+		}
+		if (dist(mouseX, mouseY, x1, y1) < 10) {
+			circleClr1Change = !(circleClr1Change); 
+		}
+		if (dist(mouseX, mouseY, x2, y2) < 10) {
+			circleClr2Change = !(circleClr2Change); 
+		}
+	}
+}
+
+function keyPressed() {
+	if (gameScreen === 1) {
+		if (key === 'o' || key === 'O') {
+				player.clr = 0;  
+		}
+		if (key === 'r' || key === 'R') {
+			player.clr = 1;  
+		}
+		if (key === 'b' || key === 'B') {
+			player.clr = 2;  
+		}
+		if (key === 'g' || key === 'G') {
+			player.clr = 3;  
+		}
+		if (key === 'y' || key === 'Y') {
+			player.clr = 4;  
+		}
+		
+		if (key === ' ') {
+			screenChange = !(screenChange); 
+		
+			switch(curveClr) {
+				case 1:
+					curveClr -= 1; 
+					break; 
+				case 0:
+					curveClr += 1; 
+					break; 
+			}
+		
+			switch(bgColor) {
+				case 255: 
+					bgColor = 0; 
+					break; 
+				case 0:
+					bgColor = 255;
+					break;
+			}
+		}
+	}
+	if (gameScreen === 0) {
+		if (key === 's' || key === 'S') {
+			setInterval(timeIt, 1000);
+			gameScreen = 1; 
+		}
+		
+		if (key === 'a' || key === 'A') {
+			avg = !(avg); 
+			if (avg === true) {
+				avgColor();
+			}
+		}
+	}
+}
+
+function timeIt() {
+  if (timerValue > 0) {
+    timerValue--;
+  }
+}
+
+function collisionCheck() {
+	enemies[0].collide(enemies[1]); 
+	enemies[0].collide(enemies[2]); 
+	enemies[0].collide(enemies[3]);
+	enemies[0].collide(enemies[4]);
+	enemies[0].collide(enemies[5]);
+	enemies[0].collide(enemies[6]);
+	enemies[0].collide(enemies[7]);
+	
+	enemies[1].collide(enemies[0]); 
+	enemies[1].collide(enemies[2]); 
+	enemies[1].collide(enemies[3]);
+	enemies[1].collide(enemies[4]);
+	enemies[1].collide(enemies[5]);
+	enemies[1].collide(enemies[6]);
+	enemies[1].collide(enemies[7]);
+	
+	enemies[2].collide(enemies[1]); 
+	enemies[2].collide(enemies[0]); 
+	enemies[2].collide(enemies[3]);
+	enemies[2].collide(enemies[4]);
+	enemies[2].collide(enemies[5]);
+	enemies[2].collide(enemies[6]);
+	enemies[2].collide(enemies[7]);
+	
+	enemies[3].collide(enemies[1]); 
+	enemies[3].collide(enemies[2]); 
+	enemies[3].collide(enemies[0]);
+	enemies[3].collide(enemies[4]);
+	enemies[3].collide(enemies[5]);
+	enemies[3].collide(enemies[6]);
+	enemies[3].collide(enemies[7]);
+	
+	enemies[4].collide(enemies[1]); 
+	enemies[4].collide(enemies[2]); 
+	enemies[4].collide(enemies[3]);
+	enemies[4].collide(enemies[0]);
+	enemies[4].collide(enemies[5]);
+	enemies[4].collide(enemies[6]);
+	enemies[4].collide(enemies[7]);
+	
+	enemies[5].collide(enemies[1]); 
+	enemies[5].collide(enemies[2]); 
+	enemies[5].collide(enemies[3]);
+	enemies[5].collide(enemies[4]);
+	enemies[5].collide(enemies[0]);
+	enemies[5].collide(enemies[6]);
+	enemies[5].collide(enemies[7]);
+	
+	enemies[6].collide(enemies[1]); 
+	enemies[6].collide(enemies[2]); 
+	enemies[6].collide(enemies[3]);
+	enemies[6].collide(enemies[4]);
+	enemies[6].collide(enemies[5]);
+	enemies[6].collide(enemies[0]);
+	enemies[6].collide(enemies[7]);
+	
+	enemies[7].collide(enemies[1]); 
+	enemies[7].collide(enemies[2]); 
+	enemies[7].collide(enemies[3]);
+	enemies[7].collide(enemies[4]);
+	enemies[7].collide(enemies[5]);
+	enemies[7].collide(enemies[6]);
+	enemies[7].collide(enemies[0]);
+	
+}
+
+function displayCurve() {
+	switch(curveClr) {
+		case 0: 
+			fill(0);
+			break; 
+		case 1: 
+			fill(255);
+			break; 
+	}
+	
+	if (screenChange === true) {
+		bezier(x1, y1, x1 + 5, y1 + 30, x2 + 5, x2 + 30, x2, y2);
+	}
+	
+	else {
+		stroke(1); 
+		curve(0, 0, x1, y1, x2, y2, 100, 100);
+	}
+	
+	switch(circleClr1Change) {
+		case false:
+			fill(255, 182, 193); 
+			break;
+		case true:
+			fill(255, 105, 180);
+			break;
+	}
+	ellipse(x1, y1, 10, 10);
+	
+	switch(circleClr2Change) {
+		case false:
+			fill(255, 105, 180); 
+			break;
+		case true:
+			fill(255, 182, 193);
+			break;
+	}
+	ellipse(x2, y2, 10, 10);
+}
+
+function moveCurve() {
+	x1 += curveSpeed * dir;
+	y1 += curveSpeed * dir; 
+	x2 += curveSpeed * -dir; 
+	y2 += curveSpeed * -dir; 
+	
+	if (x1 > width - 10 || x1 < 10 || y1 > height - 10 || y1 < 45 || x2 > width - 10 || x2 < 10 || y2 > height - 10 || y2 < 45) {
+    	dir = -dir; 
+			enemyColorChange(); 
+  }
+}
+
+function enemyColorChange() {
+	let clrVal; 
+	for (let i = 0; i < enemies.length; i++) {
+		clrVal = int(random(0, 5)); 
+		enemies[i].enemyClr = clrVal; 
+	}
+}
+
+function avgColor() {
+	avg = true;
+	cursorSmall.loadPixels(); 
+	
+	let r = 0, g = 0, b = 0; 
+	let count = 0; 
+	// noprotect
+	for (let x = 0; x < cursorSmall.width; x++) {
+  	for (let y = 0; y < cursorSmall.height; y++) {
+			let col = get(x, y); 
+			r += red(col); 
+			g += green(col); 
+			b += blue(col); 	
+			
+			count++; 
+		}
+	}
+	
+	r /= count; 
+	g /= count;
+	b /= count;
+		
+	img2 = createImage(width, 50); 
+	img2.loadPixels(); 
+	for (let x = 0; x < img2.width; x++) {
+    for (let y = 0; y < img2.height; y++) {
+      img2.set(x, y, color(r, g, b)); 
+    }
+  }
+	img2.updatePixels(); 
+}
+
+class Player {
+	constructor(x, y, w, h) {
+		this.x = x; 
+		this.y = y; 
+		this.w = w;
+		this.h = h;
+		this.clr = 0; 
+	}
+	
+	display() {
+		switch(this.clr) {
+			case 0:
+				noTint(); 
+				break; 
+			case 1:
+				tint(240, 23, 23);
+				break;
+			case 2:
+				tint(0, 153, 204); 
+				break;
+			case 3:
+				tint(0, 250, 0); 
+				break; 
+			case 4:
+				tint(242, 250, 15); 
+				break;
+		}
+		image(cursor, mouseX, mouseY, this.w, this.h); 
+	}
+}
+
+class Enemy {
+	constructor(x, y, w, h, enemyClr) {
+		this.x = x; 
+		this.y = y; 
+		this.w = w;
+		this.h = h; 
+		this.enemyClr = enemyClr; 
+		this.alive = true; 
+		this.xSpeed = 3; 
+		this.ySpeed = 1; 
+	}
+	
+	display() {
+		switch(this.enemyClr) {
+			case 0:
+				fill(255); 
+				break;
+			case 1: 
+				fill(200, 0, 0);
+				break;
+			case 2: 
+				fill(0, 153, 204); 
+				break; 
+			case 3: 
+				fill(0, 250, 0);
+				break;
+			case 4: 
+				fill(242, 250, 15); 
+				break; 
+		}
+		ellipse(this.x, this.y, this.w, this.h); 
+	} 
+	
+	move() {
+		this.x += this.xSpeed;
+		this.y += this.ySpeed; 
+		
+		if (this.x > width - this.w || this.x < this.w) {
+    	this.xSpeed = -1 * this.xSpeed;
+  	}
+  	if (this.y > height - this.w || this.y < this.w + 45) {
+    	this.ySpeed = -1 * this.ySpeed;
+  	}
+	}
+	
+	collide(enemy){
+    if (dist(this.x, this.y, enemy.x, enemy.y) <= this.w * 1.5 && enemy.alive === true){
+      this.xSpeed = -this.xSpeed;
+      this.ySpeed = -this.ySpeed;
+    }
+  }
+	
+	clicked() {
+		if (dist(mouseX, mouseY, this.x, this.y) < this.w && player.clr === this.enemyClr && this.alive === true) {
+      this.alive = false;
+			score += 10; 
+			curveSpeed += 0.5;
+			numEnemies--;
+    }
+		if (dist(mouseX, mouseY, this.x, this.y) < this.w && player.clr != this.enemyClr && this.alive === true) {
+			score -= 10; 
+    }
+	}
+}
